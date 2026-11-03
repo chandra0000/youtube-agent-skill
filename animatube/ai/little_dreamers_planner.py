@@ -306,7 +306,7 @@ Do not add characters, visual redesign notes, production costs, or publishing in
             unknown_generated = set(generated_ids) - APPROVED_CHARACTER_IDS
             if unknown_generated:
                 raise EpisodePlanError(
-                    "Unapproved generated character ID(s): "
+                    "Unapproved character ID(s) in generated plan: "
                     + ", ".join(sorted(unknown_generated))
                 )
             if generated_ids != selected:
