@@ -298,11 +298,24 @@ Do not add characters, visual redesign notes, production costs, or publishing in
             model=model,
             temperature=temperature,
         )
-        plan = EpisodePlan.from_dict(result)
-        if plan.character_ids != selected:
-            raise EpisodePlanError(
-                "Generated episode character IDs must exactly match the approved brief."
+        # Check the episode-level character selection before parsing scenes and shots.
+        # Otherwise a shot-level membership error can mask the more useful brief mismatch.
+        if isinstance(result, dict):
+            generated_character_ids = tuple(
+                _string_list(result.get("character_ids", []))
             )
+            unknown_generated = set(generated_character_ids) - APPROVED_CHARACTER_IDS
+            if unknown_generated:
+                raise EpisodePlanError(
+                    "Unapproved character ID(s): "
+                    + ", ".join(sorted(unknown_generated))
+                )
+            if generated_character_ids != selected:
+                raise EpisodePlanError(
+                    "Generated episode character IDs must exactly match the approved brief."
+                )
+
+        plan = EpisodePlan.from_dict(result)
         if not 3 <= len(plan.scenes) <= 6:
             raise EpisodePlanError("Episode plan must contain between 3 and 6 scenes.")
         if any(not 1 <= len(scene.shots) <= 5 for scene in plan.scenes):
