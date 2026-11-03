@@ -21,13 +21,24 @@ class ProductionHealthTests(unittest.TestCase):
             (flow / f"{name}_flow_anchor.png").write_bytes(b"placeholder")
         episode = root / "little-dreamers/episodes/ep01_magic_abc_train"
         episode.mkdir(parents=True)
+        scenes = []
+        for number in range(1, 12):
+            scenes.append({
+                "scene_number": number,
+                "duration_seconds": 1,
+                "shots": [{
+                    "shot_id": f"SH{number:02d}_01",
+                    "duration_seconds": 1,
+                    "characters": ["Aarav"],
+                    "character_references": [],
+                }],
+            })
         storyboard = {
-            "resolution": [1920, 1080], "fps": 24,
-            "total_duration_seconds": 10, "total_shots_count": 1,
-            "scenes": [{"scene_number": 1, "duration_seconds": 10, "shots": [{
-                "shot_id": "SH01_01", "duration_seconds": 10,
-                "characters": ["Aarav"], "character_references": []
-            }]}]
+            "resolution": [1920, 1080],
+            "fps": 24,
+            "total_duration_seconds": 11,
+            "total_shots_count": 11,
+            "scenes": scenes,
         }
         (episode / "storyboard.json").write_text(json.dumps(storyboard), encoding="utf-8")
         return root
@@ -43,9 +54,9 @@ class ProductionHealthTests(unittest.TestCase):
             root = self._workspace(Path(temp))
             path = root / "little-dreamers/episodes/ep01_magic_abc_train/storyboard.json"
             data = json.loads(path.read_text(encoding="utf-8"))
-            data["scenes"][0]["shots"][0]["duration_seconds"] = 9
+            data["scenes"][0]["shots"][0]["duration_seconds"] = 0.5
             data["scenes"][0]["shots"].append(dict(data["scenes"][0]["shots"][0]))
-            data["total_shots_count"] = 2
+            data["total_shots_count"] = 12
             path.write_text(json.dumps(data), encoding="utf-8")
             checker = ProductionHealthChecker(root)
             checker.check_storyboard()
