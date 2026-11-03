@@ -2,7 +2,7 @@ name: Python utility tests
 
 on:
   push:
-    branches: [main, "fix/**"]
+    branches: [main, "fix/**", "feat/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -54,3 +54,8 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: python -m unittest discover -s tests -v
+
+      - name: Run Little Dreamers production preflight
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m animatube.pipeline.production_health
