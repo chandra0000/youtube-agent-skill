@@ -86,12 +86,17 @@ class NoAvailableModelError(RuntimeError):
     """No configured, available model remains for the requested task."""
 
 
-def _quota_is_low(quota: ModelQuota | None) -> bool:
+def _quota_is_low(
+    quota: ModelQuota | None,
+    *,
+    weekly_threshold: float,
+    five_hour_threshold: float,
+) -> bool:
     if quota is None:
         return False
     return (
-        (quota.weekly_remaining is not None and quota.weekly_remaining <= 10.0)
-        or (quota.five_hour_remaining is not None and quota.five_hour_remaining <= 5.0)
+        (quota.weekly_remaining is not None and quota.weekly_remaining <= weekly_threshold)
+        or (quota.five_hour_remaining is not None and quota.five_hour_remaining <= five_hour_threshold)
     )
 
 
@@ -149,7 +154,11 @@ class ModelRouter:
                 continue
 
             quota = quota_map.get(candidate.group)
-            low = _quota_is_low(quota)
+            low = _quota_is_low(
+                quota,
+                weekly_threshold=self.weekly_switch_threshold,
+                five_hour_threshold=self.five_hour_switch_threshold,
+            )
             if low and candidate.group is not ModelGroup.LOCAL:
                 skipped.append(f"{model_id} skipped because {candidate.group.value} quota is at the switch threshold")
                 continue
@@ -162,10 +171,14 @@ class ModelRouter:
                 reason = "Selected by the task's quality/speed routing policy; availability and known quota checks passed."
             fallbacks = tuple(
                 other for other in ordered
-                if other != model_id and other in available
+                if other != model_id and other in available and other in MODEL_CATALOG
                 and not (
                     MODEL_CATALOG[other].group is not ModelGroup.LOCAL
-                    and _quota_is_low(quota_map.get(MODEL_CATALOG[other].group))
+                    and _quota_is_low(
+                        quota_map.get(MODEL_CATALOG[other].group),
+                        weekly_threshold=self.weekly_switch_threshold,
+                        five_hour_threshold=self.five_hour_switch_threshold,
+                    )
                 )
             )
             return ModelDecision(task, model_id, candidate.group, reason, fallbacks)
